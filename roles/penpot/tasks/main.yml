@@ -1,0 +1,25 @@
+---
+- name: Create Penpot deployment directory
+  ansible.builtin.file:
+    path: "{{ penpot_deploy_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Render Penpot stack
+  ansible.builtin.template:
+    src: penpot-stack.yml.j2
+    dest: "{{ penpot_deploy_dir }}/penpot-stack.yml"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Deploy Penpot stack
+  community.docker.docker_stack:
+    state: present
+    name: "{{ penpot_stack_name }}"
+    compose:
+      - "{{ penpot_deploy_dir }}/penpot-stack.yml"
+    prune: true
+    resolve_image: always
