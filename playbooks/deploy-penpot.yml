@@ -1,0 +1,35 @@
+---
+- name: Prepare Penpot storage node
+  hosts: penpot_storage
+  become: true
+  tasks:
+    - name: Create Penpot data directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - "{{ penpot_data_dir }}"
+        - "{{ penpot_data_dir }}/postgres"
+        - "{{ penpot_data_dir }}/assets"
+
+- name: Configure Swarm storage node label
+  hosts: swarm_managers[0]
+  become: true
+  tasks:
+    - name: Label Penpot storage node
+      community.docker.docker_node:
+        hostname: "{{ penpot_storage_node }}"
+        labels:
+          penpot_storage: "true"
+        labels_state: merge
+
+- name: Deploy Penpot stack
+  hosts: swarm_managers[0]
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - penpot
