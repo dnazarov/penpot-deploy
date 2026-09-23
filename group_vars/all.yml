@@ -1,0 +1,20 @@
+---
+penpot_stack_name: penpot
+penpot_version: "2.17"
+penpot_public_uri: "https://penpot.company.ru"
+penpot_publish_port: 8080
+
+penpot_database_name: penpot
+penpot_database_user: penpot
+postgres_version: "15"
+valkey_version: "8.1"
+
+# Docker Swarm hostname, not ansible_host IP.
+penpot_storage_node: swarm02
+penpot_deploy_dir: /opt/penpot
+penpot_data_dir: /opt/penpot/data
+
+penpot_flags: >-
+  enable-login-with-password
+  enable-registration
+  enable-prepl-server
