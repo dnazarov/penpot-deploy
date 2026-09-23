@@ -1,0 +1,117 @@
+version: "3.9"
+
+services:
+  penpot-frontend:
+    image: penpotapp/frontend:{{ penpot_version }}
+    environment:
+      PENPOT_PUBLIC_URI: "{{ penpot_public_uri }}"
+      PENPOT_BACKEND_URI: "http://penpot-backend:6060"
+      PENPOT_EXPORTER_URI: "http://penpot-exporter:6061"
+      PENPOT_FLAGS: "{{ penpot_flags }}"
+      PENPOT_HTTP_SERVER_MAX_BODY_SIZE: "367001600"
+      PENPOT_INTERNAL_RESOLVER: "127.0.0.11"
+    networks:
+      - penpot
+    volumes:
+      - type: bind
+        source: "{{ penpot_data_dir }}/assets"
+        target: /opt/data/assets
+    ports:
+      - target: 8080
+        published: {{ penpot_publish_port }}
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.penpot_storage == true
+      restart_policy:
+        condition: on-failure
+
+  penpot-backend:
+    image: penpotapp/backend:{{ penpot_version }}
+    environment:
+      PENPOT_PUBLIC_URI: "{{ penpot_public_uri }}"
+      PENPOT_FLAGS: "{{ penpot_flags }}"
+      PENPOT_SECRET_KEY: "{{ vault_penpot_secret_key }}"
+      PENPOT_DATABASE_URI: "postgresql://penpot-postgres/{{ penpot_database_name }}"
+      PENPOT_DATABASE_USERNAME: "{{ penpot_database_user }}"
+      PENPOT_DATABASE_PASSWORD: "{{ vault_penpot_database_password }}"
+      PENPOT_REDIS_URI: "redis://penpot-valkey/0"
+      PENPOT_OBJECTS_STORAGE_BACKEND: "fs"
+      PENPOT_OBJECTS_STORAGE_FS_DIRECTORY: "/opt/data/assets"
+      PENPOT_HTTP_SERVER_MAX_BODY_SIZE: "367001600"
+      PENPOT_TELEMETRY_ENABLED: "false"
+    networks:
+      - penpot
+    volumes:
+      - type: bind
+        source: "{{ penpot_data_dir }}/assets"
+        target: /opt/data/assets
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.penpot_storage == true
+      restart_policy:
+        condition: on-failure
+
+  penpot-exporter:
+    image: penpotapp/exporter:{{ penpot_version }}
+    environment:
+      PENPOT_PUBLIC_URI: "{{ penpot_public_uri }}"
+      PENPOT_SECRET_KEY: "{{ vault_penpot_secret_key }}"
+      PENPOT_REDIS_URI: "redis://penpot-valkey/0"
+      PENPOT_INTERNAL_URI: "http://penpot-frontend:8080"
+    networks:
+      - penpot
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  penpot-postgres:
+    image: postgres:{{ postgres_version }}
+    environment:
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      POSTGRES_DB: "{{ penpot_database_name }}"
+      POSTGRES_USER: "{{ penpot_database_user }}"
+      POSTGRES_PASSWORD: "{{ vault_penpot_database_password }}"
+    volumes:
+      - type: bind
+        source: "{{ penpot_data_dir }}/postgres"
+        target: /var/lib/postgresql/data
+    networks:
+      - penpot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ penpot_database_user }} -d {{ penpot_database_name }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.penpot_storage == true
+      restart_policy:
+        condition: on-failure
+
+  penpot-valkey:
+    image: valkey/valkey:{{ valkey_version }}
+    networks:
+      - penpot
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli ping | grep PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+networks:
+  penpot:
+    driver: overlay
+    attachable: true
