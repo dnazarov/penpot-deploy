@@ -1,0 +1,6 @@
+.idea/
+.vscode/
+*.retry
+*.log
+.DS_Store
+vault/secrets.yml
