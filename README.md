@@ -35,10 +35,11 @@ The external NGINX terminates TLS and balances traffic between the published por
 
 ```
 .
-├── group_vars/
-│   └── all.yml
+├── ansible.cfg
 ├── inventory/
-│   └── production.yml
+│   ├── production.yml
+│   └── group_vars/
+│       └── all.yml
 ├── nginx/
 │   └── penpot.conf.example
 ├── playbooks/
@@ -88,7 +89,7 @@ The host in the `penpot_storage` group is used for PostgreSQL and local Penpot a
 Edit:
 
 ```
-group_vars/all.yml
+inventory/group_vars/all.yml
 ```
 
 At minimum set:
@@ -121,6 +122,14 @@ ansible-vault encrypt vault/secrets.yml
 Do not commit an unencrypted secrets file.
 
 ## 4. Deploy
+
+Because `ansible.cfg` already points to the production inventory and project roles directory, the shortest command is:
+
+```bash
+ansible-playbook playbooks/deploy-penpot.yml --ask-vault-pass
+```
+
+You can still provide the inventory explicitly:
 
 ```bash
 ansible-playbook \
