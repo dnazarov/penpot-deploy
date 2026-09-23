@@ -1,0 +1,24 @@
+---
+all:
+  children:
+    swarm_managers:
+      hosts:
+        swarm01:
+          ansible_host: 10.10.10.11
+
+    swarm_workers:
+      hosts:
+        swarm02:
+          ansible_host: 10.10.10.12
+        swarm03:
+          ansible_host: 10.10.10.13
+        swarm04:
+          ansible_host: 10.10.10.14
+
+    penpot_storage:
+      hosts:
+        swarm02:
+
+  vars:
+    ansible_user: ansible
+    ansible_become: true
